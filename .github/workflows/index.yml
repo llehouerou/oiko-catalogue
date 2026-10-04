@@ -1,0 +1,105 @@
+# Indexes the types of Bridge into index.json (ADR 0020 of Oiko).
+#
+# Building and running a type executes code nobody reviewed: the job doing it
+# may only read, and runs a built Oiko only once Oiko's credentials are gone.
+# Another job, which runs nothing of the types, validates the index it
+# produced and commits it.
+name: index
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild every type, even against an Oiko it was built against
+        type: boolean
+        default: false
+
+concurrency:
+  group: index
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Build the indexer
+        run: go build -o "$RUNNER_TEMP/oiko-catalogue" .
+      - name: Find, resolve and build the types
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force && '-force' || '' }}
+          # While Oiko is private (until llehouerou/oiko#85): read it with a
+          # read-only token, given to git through the environment of this step
+          # only.
+          GOPRIVATE: github.com/llehouerou/oiko
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.OIKO_READ_TOKEN }}@github.com/llehouerou/oiko.insteadOf
+          GIT_CONFIG_VALUE_0: https://github.com/llehouerou/oiko
+        run: |
+          "$RUNNER_TEMP/oiko-catalogue" build -work "$RUNNER_TEMP/work" $FORCE
+      - name: Scrub git credentials
+        env:
+          OIKO_READ_TOKEN: ${{ secrets.OIKO_READ_TOKEN }}
+        run: |
+          rm -rf "$(go env GOMODCACHE)/cache/vcs"
+          for config in global system; do
+            if git config --$config --get-regexp '^(url\..*|credential\..*|http\..*extraheader)$'; then
+              echo "git $config configuration holds credentials" >&2
+              exit 1
+            fi
+          done
+          if grep -rlF -- "$OIKO_READ_TOKEN" "$HOME/.gitconfig" "$(go env GOMODCACHE)/cache" "$RUNNER_TEMP" "$GITHUB_WORKSPACE" 2>/dev/null; then
+            echo "Oiko's token was left on disk" >&2
+            exit 1
+          fi
+      - name: Check the types the builds register
+        run: |
+          "$RUNNER_TEMP/oiko-catalogue" check -work "$RUNNER_TEMP/work" -index "$RUNNER_TEMP/index.json"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: index
+          path: ${{ runner.temp }}/index.json
+          if-no-files-found: error
+
+  commit:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: index
+          path: ${{ runner.temp }}/index
+      - name: Validate the index
+        run: go run . validate -index "$RUNNER_TEMP/index/index.json"
+      - name: Commit it if it changed
+        run: |
+          cp "$RUNNER_TEMP/index/index.json" index.json
+          git add index.json
+          if git diff --cached --quiet; then
+            echo "index.json unchanged"
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "Index the types of Bridge"
+          git push origin HEAD:main

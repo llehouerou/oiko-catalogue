@@ -1,0 +1,69 @@
+{
+  "modules": [
+    {
+      "module": "example.com/oiko-sonos",
+      "repo": "https://github.com/someone/oiko-sonos",
+      "types": {
+        "sonos": {
+          "description": "Sonos speakers",
+          "config": {}
+        }
+      },
+      "versions": [
+        {
+          "version": "v0.1.0",
+          "minOiko": "v0.1.0"
+        }
+      ],
+      "latest": "v0.1.0",
+      "oiko": "v0.2.0",
+      "compatible": false,
+      "error": "# example.com/oiko-sonos\n./sonos.go:12:2: undefined: bridge.Old <- removed\ngo build: exit status 1"
+    },
+    {
+      "module": "github.com/someone/oiko-hue",
+      "repo": "https://github.com/someone/oiko-hue",
+      "types": {
+        "hue": {
+          "description": "Philips Hue lights through a Hue Bridge",
+          "config": {
+            "host": "192.168.1.10"
+          }
+        },
+        "hue-sensor": {
+          "description": "Philips Hue sensors",
+          "config": {
+            "type": "hue-sensor",
+            "host": "192.168.1.10"
+          }
+        }
+      },
+      "versions": [
+        {
+          "version": "v1.0.0"
+        },
+        {
+          "version": "v1.1.0",
+          "minOiko": "v0.0.0-20261004163119-85cb02bc0dfc"
+        },
+        {
+          "version": "v1.2.0",
+          "minOiko": "v0.2.0"
+        }
+      ],
+      "latest": "v1.2.0",
+      "oiko": "v0.2.0",
+      "compatible": true
+    }
+  ],
+  "rejected": [
+    {
+      "repo": "https://github.com/someone/oiko-lifx",
+      "reason": "types mismatch: the manifest names lifx; v1.0.0 registers lifx, lifx-beam"
+    },
+    {
+      "repo": "https://github.com/someone/oiko-zwave",
+      "reason": "no manifest"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"types": {"sonos": {"description": "Sonos speakers", "config": {}}, "sonos-sub": {"description": "A Sonos subwoofer", "config": {"type": "sonos-sub", "room": "living"}}}}

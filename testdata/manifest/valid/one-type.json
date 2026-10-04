@@ -1,0 +1,1 @@
+{"types": {"hue": {"description": "Philips Hue lights through a Hue Bridge", "config": {"host": "192.168.1.10"}}}}
