@@ -7,8 +7,8 @@
 <style>
   :root { color-scheme: light dark; font-family: system-ui, sans-serif; line-height: 1.4; }
   body { max-width: 50rem; margin: 2rem auto; padding: 0 1rem; }
-  ul { list-style: none; padding: 0; }
-  li { padding: 0.5rem 0; border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
+  #types { list-style: none; padding: 0; }
+  #types > li { padding: 0.5rem 0; border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
   li.blocked { opacity: 0.55; }
   label { cursor: pointer; }
   li.blocked label { cursor: not-allowed; }
@@ -38,6 +38,7 @@
   <div role="tablist">
     <button type="button" role="tab" aria-selected="true" aria-controls="binary">Binary</button>
     <button type="button" role="tab" aria-selected="false" aria-controls="docker">Docker</button>
+    <button type="button" role="tab" aria-selected="false" aria-controls="nixos" data-own-config>NixOS</button>
   </div>
 
   <div id="binary" role="tabpanel">
@@ -64,8 +65,26 @@
     </p>
   </div>
 
-  <h2><code>data/config.json</code> <button type="button" data-copy="config">Copy</button></h2>
-  <pre id="config"></pre>
+  <div id="nixos" role="tabpanel" hidden>
+    <h3><code>flake.nix</code> <button type="button" data-copy="flake">Copy</button></h3>
+    <pre id="flake"></pre>
+    <h3><code>oiko.nix</code> <button type="button" data-copy="oiko-nix">Copy</button></h3>
+    <pre id="oiko-nix"></pre>
+    <ol>
+      <li>Add the <code>oiko</code> input and the two modules to your host's <code>nixosSystem</code> in <code>flake.nix</code>, and put <code>oiko.nix</code> next to it.</li>
+      <li>Set <code>services.oiko.mqtt</code> to the broker zigbee2mqtt publishes to: the module requires it. <code>services.oiko.settings</code> is the rest of <code>config.json</code>.</li>
+      <li>Run <code>nixos-rebuild switch</code>. The first one fails, printing <code>got: sha256-…</code>: set it as <code>vendorHash</code> and rebuild. Then open <a href="http://localhost:8080">http://localhost:8080</a>.</li>
+    </ol>
+    <p>
+      To pair a HomeKit accessory, run <code>sudo -u oiko oiko -data /var/lib/oiko -config /etc/oiko/config.json homekit pair &lt;code&gt;</code>, then <code>systemctl restart oiko</code>.
+      When Oiko tells of a newer release, apply the lines it shows and rebuild.
+    </p>
+  </div>
+
+  <div id="shared">
+    <h2><code>data/config.json</code> <button type="button" data-copy="config">Copy</button></h2>
+    <pre id="config"></pre>
+  </div>
 </section>
 </body>
 </html>

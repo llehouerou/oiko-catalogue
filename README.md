@@ -106,12 +106,20 @@ network (HomeKit discovers accessories over mDNS), as the occupant's user, with 
 host's timezone mounted. [Another workflow](.github/workflows/docker.yml) builds the pair for no
 type against the latest Oiko and checks its dashboard answers, on every change to the site.
 
+The NixOS tab gives what a flake-based NixOS configuration adds: in `flake.nix`, the `oiko`
+input pinned to the Oiko release the types build against and its module; and an `oiko.nix`
+enabling the service with the package overridden with each module at its latest version (the
+lines Oiko's update banner shows; `vendorHash` is set from the first build's failure), and the
+examples as `services.oiko.settings.bridges`, written as Nix. The shared `data/config.json` is
+hidden there. [A third workflow](.github/workflows/nixos.yml) evaluates the pair for fixture
+types against the latest Oiko: the package's derivation and the bridges of `config.json`.
+
 ## Development
 
 ```sh
 nix develop          # or Go, the version go.mod names, and Node
 go test ./...
-node --test          # the site's command and configuration, against testdata/index.json
+node --test          # the site's outputs, against testdata/index.json
 python3 -m http.server -d site   # the site, on http://localhost:8000
 go run . build -work /tmp/work [-force]   # GITHUB_TOKEN for the search
 go run . check -work /tmp/work -index index.json

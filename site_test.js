@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { blocked, command, compose, config, dockerfile, key, types } from "./site/catalogue.js";
+import { blocked, command, compose, config, dockerfile, flake, key, nix, oikoNix, types } from "./site/catalogue.js";
 
 const all = types(JSON.parse(readFileSync(new URL("testdata/index.json", import.meta.url))));
 const pick = (...keys) => keys.map((k) => all.find((t) => key(t) === k));
@@ -99,7 +99,7 @@ test("compose", () => {
 
 test("config: the examples, by type name", () => {
   assert.equal(
-    config(pick(nanoleaf, hueSensor, hue)),
+    config(pick(hueSensor, hue)),
     `{
   "bridges": {
     "hue": {
@@ -108,13 +108,90 @@ test("config: the examples, by type name", () => {
     "hue-sensor": {
       "type": "hue-sensor",
       "host": "192.168.1.10"
-    },
-    "nanoleaf": {
-      "host": "192.168.1.30",
-      "token": ""
     }
   }
 }`,
   );
   assert.throws(() => config(pick(hue, lightsHue)), /hue is picked twice/);
+});
+
+test("flake: the oiko input at the picked types' Oiko, and the modules", () => {
+  assert.equal(
+    flake(pick(nanoleaf, hue)),
+    `inputs.oiko.url = "github:llehouerou/oiko/v0.2.0";
+
+outputs = { nixpkgs, oiko, ... }: {
+  nixosConfigurations.home = nixpkgs.lib.nixosSystem { # your host
+    specialArgs = { inherit oiko; };
+    modules = [ oiko.nixosModules.default ./oiko.nix ];
+  };
+};
+`,
+  );
+  assert.ok(flake([], "v0.3.0").startsWith('inputs.oiko.url = "github:llehouerou/oiko/v0.3.0";\n'));
+  const [h, n] = pick(hue, nanoleaf);
+  assert.throws(() => flake([h, { ...n, oiko: "v0.3.0" }]), /want one Oiko/);
+});
+
+test("oikoNix: the package with each module, and the examples as Nix", () => {
+  assert.equal(
+    oikoNix(pick(nanoleaf, hueSensor, hue)),
+    String.raw`{ oiko, pkgs, lib, ... }:
+{
+  services.oiko.enable = true;
+  services.oiko.mqtt = "mqtt://localhost:1883"; # your zigbee2mqtt broker
+  services.oiko.package = oiko.packages.${"$"}{pkgs.stdenv.hostPlatform.system}.default.override {
+    bridges."github.com/someone/oiko-hue" = "v1.2.0";
+    bridges."github.com/someone/oiko-lights" = "v0.3.0";
+    vendorHash = lib.fakeHash; # the first build prints the hash to set
+  };
+  services.oiko.settings.bridges = {
+    hue = {
+      host = "192.168.1.10";
+    };
+    hue-sensor = {
+      type = "hue-sensor";
+      host = "192.168.1.10";
+    };
+    nanoleaf = {
+      host = "192.168.1.30";
+      token = "a\"b\\c\${d}\n";
+      panels = {
+        "1st" = 1;
+        "living room" = [
+          true
+          null
+          (-2.5)
+        ];
+        "or" = { };
+      };
+    };
+  };
+}
+`,
+  );
+});
+
+test("nix: scalars, escapes and keys", () => {
+  assert.equal(nix("plain"), '"plain"');
+  assert.equal(nix('\\ " ${x} $y \n\r\t'), String.raw`"\\ \" \${x} $y \n\r\t"`);
+  assert.equal(nix(0), "0");
+  assert.equal(nix(-3), "(-3)");
+  assert.equal(nix(1e21), "1.0e+21");
+  assert.equal(nix(1.5e-7), "1.5e-7");
+  assert.equal(nix(false), "false");
+  assert.equal(nix([]), "[ ]");
+  assert.equal(nix({}), "{ }");
+  assert.equal(
+    nix({ a_b: 1, "c'-d": 2, "-e": 3, "f.g": 4, "": 5, if: 6, 'h"': 7 }),
+    String.raw`{
+  a_b = 1;
+  c'-d = 2;
+  "-e" = 3;
+  "f.g" = 4;
+  "" = 5;
+  "if" = 6;
+  "h\"" = 7;
+}`,
+  );
 });

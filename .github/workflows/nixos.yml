@@ -1,0 +1,84 @@
+# Checks the site's NixOS output: the flake.nix excerpt and oiko.nix it gives
+# for types of the fixture index, moved to the latest Oiko, evaluate into an
+# Oiko package with them and a config.json with their bridges. Eval only: the
+# fixture modules do not exist.
+name: nixos
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - site/**
+      - .github/workflows/nixos.yml
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      # While Oiko is private (until llehouerou/oiko#85), Nix fetches it with
+      # a read-only token.
+      NIX_CONFIG: access-tokens = github.com=${{ secrets.OIKO_READ_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: cachix/install-nix-action@v31
+      - name: Resolve the latest Oiko release
+        id: oiko
+        env:
+          OIKO_READ_TOKEN: ${{ secrets.OIKO_READ_TOKEN }}
+        run: |
+          version=$(git ls-remote --tags --refs "https://x-access-token:$OIKO_READ_TOKEN@github.com/llehouerou/oiko" \
+            | sed 's|.*refs/tags/||' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+          test -n "$version"
+          echo "Oiko $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Write the flake
+        env:
+          OIKO: ${{ steps.oiko.outputs.version }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/nixos"
+          cd "$RUNNER_TEMP/nixos"
+          node --input-type=module -e '
+            import { readFileSync, writeFileSync } from "node:fs";
+            const site = await import(`${process.env.GITHUB_WORKSPACE}/site/catalogue.js`);
+            const index = JSON.parse(readFileSync(`${process.env.GITHUB_WORKSPACE}/testdata/index.json`));
+            const keys = ["github.com/someone/oiko-hue hue", "github.com/someone/oiko-hue hue-sensor", "github.com/someone/oiko-lights nanoleaf"];
+            const picked = site.types(index)
+              .filter((t) => keys.includes(site.key(t)))
+              .map((t) => ({ ...t, oiko: process.env.OIKO }));
+            if (picked.length !== keys.length) throw new Error("fixture types missing");
+            const flake = site.flake(picked);
+            if (!flake.includes("modules = [ ")) throw new Error("no modules");
+            const inputs = "inputs.nixpkgs.follows = \"oiko/nixpkgs\";\n";
+            writeFileSync("flake.nix", `{\n${inputs}${flake.replace("modules = [ ", "modules = [ ./host.nix ")}}\n`);
+            writeFileSync("host.nix", `{ nixpkgs.hostPlatform = "x86_64-linux"; system.stateVersion = "25.11"; }\n`);
+            writeFileSync("oiko.nix", site.oikoNix(picked));
+            writeFileSync("bridges.json", JSON.stringify(JSON.parse(site.config(picked)).bridges));
+          '
+          cat flake.nix oiko.nix
+      - name: Evaluate the package
+        working-directory: ${{ runner.temp }}/nixos
+        run: nix eval --raw .#nixosConfigurations.home.config.services.oiko.package.drvPath
+      - name: Check the bridges of config.json
+        working-directory: ${{ runner.temp }}/nixos
+        # The value pkgs.formats.json writes /etc/oiko/config.json from:
+        # reading the file itself would build it.
+        run: |
+          nix eval --json '.#nixosConfigurations.home.config.environment.etc."oiko/config.json".source.value' > config.json
+          node --input-type=module -e '
+            import assert from "node:assert/strict";
+            import { readFileSync } from "node:fs";
+            const { zigbee2mqtt, homekit, ...bridges } = JSON.parse(readFileSync("config.json")).bridges;
+            assert.deepEqual(bridges, JSON.parse(readFileSync("bridges.json")));
+            assert.deepEqual(zigbee2mqtt, { broker: "mqtt://localhost:1883" });
+            console.log(JSON.stringify(bridges, null, 2));
+          '
