@@ -1,7 +1,7 @@
 # Indexes the types of Bridge into index.json (ADR 0020 of Oiko).
 #
 # Building and running a type executes code nobody reviewed: the job doing it
-# may only read, and runs a built Oiko only once Oiko's credentials are gone.
+# may only read, and runs a built Oiko in a step given no token.
 # Another job, which runs nothing of the types, validates the index it
 # produced and commits it; a third publishes the site when it did.
 name: index
@@ -40,30 +40,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           FORCE: ${{ inputs.force && '-force' || '' }}
-          # While Oiko is private (until llehouerou/oiko#85): read it with a
-          # read-only token, given to git through the environment of this step
-          # only.
-          GOPRIVATE: github.com/llehouerou/oiko
-          GIT_CONFIG_COUNT: "1"
-          GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.OIKO_READ_TOKEN }}@github.com/llehouerou/oiko.insteadOf
-          GIT_CONFIG_VALUE_0: https://github.com/llehouerou/oiko
         run: |
           "$RUNNER_TEMP/oiko-catalogue" build -work "$RUNNER_TEMP/work" $FORCE
-      - name: Scrub git credentials
-        env:
-          OIKO_READ_TOKEN: ${{ secrets.OIKO_READ_TOKEN }}
-        run: |
-          rm -rf "$(go env GOMODCACHE)/cache/vcs"
-          for config in global system; do
-            if git config --$config --get-regexp '^(url\..*|credential\..*|http\..*extraheader)$'; then
-              echo "git $config configuration holds credentials" >&2
-              exit 1
-            fi
-          done
-          if grep -rlF -- "$OIKO_READ_TOKEN" "$HOME/.gitconfig" "$(go env GOMODCACHE)/cache" "$RUNNER_TEMP" "$GITHUB_WORKSPACE" 2>/dev/null; then
-            echo "Oiko's token was left on disk" >&2
-            exit 1
-          fi
       - name: Check the types the builds register
         run: |
           "$RUNNER_TEMP/oiko-catalogue" check -work "$RUNNER_TEMP/work" -index "$RUNNER_TEMP/index.json"

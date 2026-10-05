@@ -39,7 +39,7 @@ type work struct {
 // Build indexes the repositories with the topic, building the latest version
 // of each module against the latest Oiko unless prev holds that pair already
 // (or force), and writes what Check needs to dir. It runs nothing of the
-// types: Check does, once credentials are gone.
+// types: Check does, given no token.
 func Build(ctx context.Context, prev Index, dir string, force bool) error {
 	oiko, err := latestOiko(ctx, dir)
 	if err != nil {

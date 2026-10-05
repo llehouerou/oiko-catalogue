@@ -5,8 +5,8 @@
 //	oiko-catalogue check -work DIR [-index index.json]
 //	oiko-catalogue validate [-index index.json]
 //
-// build finds, resolves and builds the types, reading Oiko with credentials;
-// check, once they are gone, runs what build built and writes the index;
+// build finds, resolves and builds the types, with a token for GitHub's search;
+// check, given no token, runs what build built and writes the index;
 // validate checks an index's shape, in the job that commits it.
 package main
 

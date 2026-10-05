@@ -3,7 +3,7 @@ module github.com/someone/oiko-hue
 go 1.27.1
 
 require (
-	github.com/llehouerou/oiko v0.2.0
+	github.com/llehouerou/oiko v0.3.0
 	golang.org/x/net v0.40.0
 )
 

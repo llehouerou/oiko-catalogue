@@ -19,10 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    env:
-      # While Oiko is private (until llehouerou/oiko#85), Nix fetches it with
-      # a read-only token.
-      NIX_CONFIG: access-tokens = github.com=${{ secrets.OIKO_READ_TOKEN }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -33,12 +29,8 @@ jobs:
       - uses: cachix/install-nix-action@v31
       - name: Resolve the latest Oiko release
         id: oiko
-        env:
-          OIKO_READ_TOKEN: ${{ secrets.OIKO_READ_TOKEN }}
         run: |
-          version=$(git ls-remote --tags --refs "https://x-access-token:$OIKO_READ_TOKEN@github.com/llehouerou/oiko" \
-            | sed 's|.*refs/tags/||' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
-          test -n "$version"
+          version=$(curl -fsS https://proxy.golang.org/github.com/llehouerou/oiko/@latest | jq -r .Version)
           echo "Oiko $version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Write the flake

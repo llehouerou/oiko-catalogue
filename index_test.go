@@ -92,7 +92,7 @@ func TestAddedTypes(t *testing.T) {
 }
 
 func TestMinOiko(t *testing.T) {
-	if got, err := minOiko("testdata/oiko-hue.mod"); err != nil || got != "v0.2.0" {
+	if got, err := minOiko("testdata/oiko-hue.mod"); err != nil || got != "v0.3.0" {
 		t.Errorf("got %q, %v", got, err)
 	}
 }
@@ -114,7 +114,7 @@ func TestTail(t *testing.T) {
 func TestCheck(t *testing.T) {
 	dir := t.TempDir()
 	module := func(mod, repo string, types ...string) Module {
-		m := Module{Module: mod, Repo: repoPrefix + repo, Types: map[string]Type{}, Versions: []Version{{Version: "v1.0.0"}}, Latest: "v1.0.0", Oiko: "v0.2.0"}
+		m := Module{Module: mod, Repo: repoPrefix + repo, Types: map[string]Type{}, Versions: []Version{{Version: "v1.0.0"}}, Latest: "v1.0.0", Oiko: "v0.3.0"}
 		for _, t := range types {
 			m.Types[t] = Type{"A type", json.RawMessage(`{}`)}
 		}

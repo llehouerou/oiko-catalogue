@@ -36,7 +36,10 @@ rebuilt every day by [a workflow](.github/workflows/index.yml), and
   must be the type's name.
 
 Any other field is refused. There is no minimum Oiko version: it is the version of
-`github.com/llehouerou/oiko` the module's `go.mod` requires.
+`github.com/llehouerou/oiko` the module's `go.mod` requires. It tells which Oiko the type
+builds with: during v0, a minor release of Oiko may break the bridge contract and the
+configuration and a patch neither breaks nor adds, so a type requiring `v0.3.1` builds with the
+`v0.3` releases from `v0.3.1` on ([ADR 0019 of Oiko](https://github.com/llehouerou/oiko/blob/main/docs/adr/0019-release-and-compatibility-policy.md)).
 
 ## The index
 
@@ -65,11 +68,11 @@ Every day, and on demand, the workflow:
         }
       },
       "versions": [
-        {"version": "v1.1.0", "minOiko": "v0.1.0"},
-        {"version": "v1.2.0", "minOiko": "v0.2.0"}
+        {"version": "v1.1.0", "minOiko": "v0.3.0"},
+        {"version": "v1.2.0", "minOiko": "v0.3.0"}
       ],
       "latest": "v1.2.0",
-      "oiko": "v0.2.0",
+      "oiko": "v0.3.0",
       "compatible": true
     }
   ],
@@ -87,7 +90,7 @@ Every day, and on demand, the workflow:
   invalid manifest, a module not at the root, or types that differ from those registered.
 
 Building a type runs code nobody reviewed: the job that builds and runs it may only read, and
-runs it once Oiko's credentials are gone; another job validates the index and commits it.
+runs it in a step given no token; another job validates the index and commits it.
 
 ## Site
 
