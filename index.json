@@ -8,10 +8,10 @@
           "description": "Arlo cameras through Arlo's cloud: motion, battery and connection of each camera, and the location's mode (standby, armHome, armAway), which it can set. Two-factor codes are read over IMAP.",
           "config": {
             "email": "oiko@example.com",
-            "passwordFile": "/run/credentials/oiko.service/arlo_password",
+            "passwordFile": "/path/to/arlo-password",
             "imapServer": "imap.example.com:993",
             "imapUser": "oiko@example.com",
-            "imapPasswordFile": "/run/credentials/oiko.service/arlo_imap_password"
+            "imapPasswordFile": "/path/to/imap-password"
           }
         }
       },
@@ -19,10 +19,18 @@
         {
           "version": "v0.1.0",
           "minOiko": "v0.3.0"
+        },
+        {
+          "version": "v0.1.1",
+          "minOiko": "v0.3.0"
+        },
+        {
+          "version": "v0.2.0",
+          "minOiko": "v0.4.0"
         }
       ],
-      "latest": "v0.1.0",
-      "oiko": "v0.3.0",
+      "latest": "v0.2.0",
+      "oiko": "v0.4.0",
       "compatible": true
     }
   ],
