@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oiko catalogue</title>
+<style>
+  :root { color-scheme: light dark; font-family: system-ui, sans-serif; line-height: 1.4; }
+  body { max-width: 50rem; margin: 2rem auto; padding: 0 1rem; }
+  ul { list-style: none; padding: 0; }
+  li { padding: 0.5rem 0; border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
+  li.blocked { opacity: 0.55; }
+  label { cursor: pointer; }
+  li.blocked label { cursor: not-allowed; }
+  .module { font-size: 0.85em; margin-left: 1.6rem; }
+  details { margin-left: 1.6rem; font-size: 0.85em; }
+  pre { overflow-x: auto; padding: 0.75rem; background: color-mix(in srgb, currentColor 8%, transparent); }
+  h2 { display: flex; gap: 1rem; align-items: baseline; }
+</style>
+<script type="module" src="catalogue.js"></script>
+</head>
+<body>
+<h1>Oiko catalogue</h1>
+<p>
+  Types of Bridge for <a href="https://github.com/llehouerou/oiko">Oiko</a>, written by others.
+  Pick some to build an Oiko with them. Oiko has types built in too: see
+  <a href="https://github.com/llehouerou/oiko#readme">its README</a>.
+  To list yours, see <a href="https://github.com/llehouerou/oiko-catalogue#listing-a-type-of-bridge">the catalogue's README</a>.
+</p>
+
+<ul id="types"><li>Loading…</li></ul>
+
+<p id="placeholder">Pick a type to get the command building an Oiko with it.</p>
+<section id="output" hidden>
+  <h2>Build <button type="button" data-copy="command">Copy</button></h2>
+  <pre id="command"></pre>
+  <h2><code>data/config.json</code> <button type="button" data-copy="config">Copy</button></h2>
+  <pre id="config"></pre>
+</section>
+</body>
+</html>

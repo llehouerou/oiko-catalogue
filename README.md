@@ -2,7 +2,8 @@
 
 The catalogue of types of Bridge for [Oiko](https://github.com/llehouerou/oiko): Go modules
 others write, compiled into Oiko with `oiko-build`. [`index.json`](index.json) lists them,
-rebuilt every day by [a workflow](.github/workflows/index.yml).
+rebuilt every day by [a workflow](.github/workflows/index.yml), and
+[the site](https://llehouerou.github.io/oiko-catalogue/) shows them.
 
 ## Listing a type of Bridge
 
@@ -88,11 +89,22 @@ Every day, and on demand, the workflow:
 Building a type runs code nobody reviewed: the job that builds and runs it may only read, and
 runs it once Oiko's credentials are gone; another job validates the index and commits it.
 
+## Site
+
+[`site/`](site) is the site, published on GitHub Pages by [a workflow](.github/workflows/pages.yml)
+whenever it or `index.json` changes on `main`. It lists the indexed types; the visitor picks
+some and gets the `oiko-build` command building an Oiko with them, each module at its latest
+version, and a `data/config.json` with their sections of `bridges`, from their manifests'
+`config`. A static page and one ES module, no build step: `site/index.json` is a link to the
+index.
+
 ## Development
 
 ```sh
-nix develop          # or Go, the version go.mod names
+nix develop          # or Go, the version go.mod names, and Node
 go test ./...
+node --test          # the site's command and configuration, against testdata/index.json
+python3 -m http.server -d site   # the site, on http://localhost:8000
 go run . build -work /tmp/work [-force]   # GITHUB_TOKEN for the search
 go run . check -work /tmp/work -index index.json
 go run . validate -index index.json

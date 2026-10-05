@@ -1,0 +1,45 @@
+# Publishes the site, site/ with index.json, on GitHub Pages.
+#
+# index.yml calls it once it committed a new index: pushes made with its
+# GITHUB_TOKEN do not trigger on: push.
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - site/**
+      - index.json
+      - .github/workflows/pages.yml
+  workflow_call:
+
+concurrency:
+  group: pages
+
+permissions: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Test the site
+        run: node --test
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site # its index.json is a link to the repository's, dereferenced
+      - id: deploy
+        uses: actions/deploy-pages@v5

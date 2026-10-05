@@ -3,7 +3,7 @@
 # Building and running a type executes code nobody reviewed: the job doing it
 # may only read, and runs a built Oiko only once Oiko's credentials are gone.
 # Another job, which runs nothing of the types, validates the index it
-# produced and commits it.
+# produced and commits it; a third publishes the site when it did.
 name: index
 
 on:
@@ -78,6 +78,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      pushed: ${{ steps.commit.outputs.pushed }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -93,6 +95,7 @@ jobs:
       - name: Validate the index
         run: go run . validate -index "$RUNNER_TEMP/index/index.json"
       - name: Commit it if it changed
+        id: commit
         run: |
           cp "$RUNNER_TEMP/index/index.json" index.json
           git add index.json
@@ -103,3 +106,13 @@ jobs:
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -m "Index the types of Bridge"
           git push origin HEAD:main
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+  pages:
+    needs: commit
+    if: needs.commit.outputs.pushed == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml
