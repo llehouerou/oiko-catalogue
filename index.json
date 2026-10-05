@@ -27,10 +27,36 @@
         {
           "version": "v0.2.0",
           "minOiko": "v0.4.0"
+        },
+        {
+          "version": "v0.3.0",
+          "minOiko": "v0.5.0"
         }
       ],
-      "latest": "v0.2.0",
-      "oiko": "v0.4.0",
+      "latest": "v0.3.0",
+      "oiko": "v0.5.0",
+      "compatible": true
+    },
+    {
+      "module": "github.com/llehouerou/oiko-netatmo",
+      "repo": "https://github.com/llehouerou/oiko-netatmo",
+      "types": {
+        "netatmo": {
+          "description": "Netatmo weather stations through Netatmo's cloud, polled every 5 minutes: temperature, humidity, CO₂, noise, pressure and rain of each module, its battery, and whether it is reachable.",
+          "config": {
+            "clientId": "0123456789abcdef01234567",
+            "clientSecretFile": "/path/to/netatmo-client-secret"
+          }
+        }
+      },
+      "versions": [
+        {
+          "version": "v0.1.0",
+          "minOiko": "v0.5.0"
+        }
+      ],
+      "latest": "v0.1.0",
+      "oiko": "v0.5.0",
       "compatible": true
     }
   ],
