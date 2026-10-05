@@ -98,6 +98,14 @@ version, and a `data/config.json` with their sections of `bridges`, from their m
 `config`. A static page and one ES module, no build step: `site/index.json` is a link to the
 index.
 
+The Docker tab gives instead a `Dockerfile` and a `compose.yaml`. The Dockerfile builds in
+`golang:1`, its `RUN` holding the `oiko-build` command as is (Oiko's update banner names the
+one to put in its place), and runs Oiko in `gcr.io/distroless/static-debian12:nonroot` with
+`OIKO_INSTALL=docker` and its data in the volume `/data`. compose.yaml runs it on the host's
+network (HomeKit discovers accessories over mDNS), as the occupant's user, with `./data` and the
+host's timezone mounted. [Another workflow](.github/workflows/docker.yml) builds the pair for no
+type against the latest Oiko and checks its dashboard answers, on every change to the site.
+
 ## Development
 
 ```sh

@@ -1,0 +1,78 @@
+# Checks the site's Docker output: the Dockerfile and compose.yaml it gives
+# for no type of Bridge build the latest Oiko, and it serves its dashboard.
+name: docker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - site/**
+      - .github/workflows/docker.yml
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Resolve the latest Oiko release
+        id: oiko
+        env:
+          OIKO_READ_TOKEN: ${{ secrets.OIKO_READ_TOKEN }}
+        run: |
+          version=$(git ls-remote --tags --refs "https://x-access-token:$OIKO_READ_TOKEN@github.com/llehouerou/oiko" \
+            | sed 's|.*refs/tags/||' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+          test -n "$version"
+          echo "Oiko $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Write the Dockerfile and compose.yaml
+        env:
+          OIKO: ${{ steps.oiko.outputs.version }}
+        # While Oiko is private (until llehouerou/oiko#85), the build reads it
+        # with a token given as a build secret.
+        run: |
+          mkdir -p "$RUNNER_TEMP/oiko/data"
+          cd "$RUNNER_TEMP/oiko"
+          node --input-type=module -e '
+            import { writeFileSync } from "node:fs";
+            const { compose, dockerfile } = await import(`${process.env.GITHUB_WORKSPACE}/site/catalogue.js`);
+            const replace = (s, from, to) => {
+              if (!s.includes(from)) throw new Error(`no ${from}`);
+              return s.replace(from, to);
+            };
+            let d = dockerfile([], process.env.OIKO);
+            d = replace(d, "RUN go run", "RUN --mount=type=secret,id=netrc,target=/root/.netrc GOPRIVATE=github.com/llehouerou/oiko go run");
+            let c = compose();
+            c = replace(c, "user: \"1000:1000\"", `user: "${process.getuid()}:${process.getgid()}"`);
+            c = replace(c, "build: .", "build:\n      context: .\n      secrets: [netrc]");
+            c += "secrets:\n  netrc:\n    environment: NETRC\n";
+            writeFileSync("Dockerfile", d);
+            writeFileSync("compose.yaml", c);
+          '
+          cat Dockerfile compose.yaml
+      - name: Build and start Oiko
+        working-directory: ${{ runner.temp }}/oiko
+        env:
+          NETRC: "machine github.com login x-access-token password ${{ secrets.OIKO_READ_TOKEN }}"
+        run: docker compose up -d --build
+      - name: Wait for its dashboard
+        working-directory: ${{ runner.temp }}/oiko
+        run: |
+          for _ in $(seq 60); do
+            if curl -fsS -o /dev/null http://localhost:8080/; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose ps -a
+          docker compose logs
+          exit 1

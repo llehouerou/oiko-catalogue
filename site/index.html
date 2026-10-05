@@ -15,7 +15,10 @@
   .module { font-size: 0.85em; margin-left: 1.6rem; }
   details { margin-left: 1.6rem; font-size: 0.85em; }
   pre { overflow-x: auto; padding: 0.75rem; background: color-mix(in srgb, currentColor 8%, transparent); }
-  h2 { display: flex; gap: 1rem; align-items: baseline; }
+  h2, h3 { display: flex; gap: 1rem; align-items: baseline; }
+  [role=tablist] { display: flex; gap: 0.25rem; border-bottom: 1px solid color-mix(in srgb, currentColor 25%, transparent); margin-top: 2rem; }
+  [role=tab] { font: inherit; padding: 0.4rem 1rem; border: 1px solid transparent; border-bottom: none; background: none; color: inherit; cursor: pointer; }
+  [role=tab][aria-selected=true] { border-color: color-mix(in srgb, currentColor 25%, transparent); font-weight: bold; }
 </style>
 <script type="module" src="catalogue.js"></script>
 </head>
@@ -32,8 +35,35 @@
 
 <p id="placeholder">Pick a type to get the command building an Oiko with it.</p>
 <section id="output" hidden>
-  <h2>Build <button type="button" data-copy="command">Copy</button></h2>
-  <pre id="command"></pre>
+  <div role="tablist">
+    <button type="button" role="tab" aria-selected="true" aria-controls="binary">Binary</button>
+    <button type="button" role="tab" aria-selected="false" aria-controls="docker">Docker</button>
+  </div>
+
+  <div id="binary" role="tabpanel">
+    <h3>Build <button type="button" data-copy="command">Copy</button></h3>
+    <pre id="command"></pre>
+    <p>Go 1.27 or later builds it. Put <code>data/config.json</code> below next to <code>oiko</code>, run <code>./oiko</code>, and open <a href="http://localhost:8080">http://localhost:8080</a>.</p>
+  </div>
+
+  <div id="docker" role="tabpanel" hidden>
+    <h3><code>Dockerfile</code> <button type="button" data-copy="dockerfile">Copy</button></h3>
+    <pre id="dockerfile"></pre>
+    <h3><code>compose.yaml</code> <button type="button" data-copy="compose">Copy</button></h3>
+    <pre id="compose"></pre>
+    <ol>
+      <li>Put both files in a directory and run <code>mkdir data</code> there first: Docker would create a missing <code>data</code> owned by root.</li>
+      <li>In <code>compose.yaml</code>, set <code>user</code> to what <code>id -u</code> and <code>id -g</code> print.</li>
+      <li>Put <code>config.json</code> below in <code>data/</code>. File paths in it are paths in the container: <code>/data/…</code>.</li>
+      <li>Run <code>docker compose up -d --build</code>, and open <a href="http://localhost:8080">http://localhost:8080</a>.</li>
+    </ol>
+    <p>
+      The container uses the host's network: HomeKit discovers accessories over mDNS.
+      To pair one, run <code>docker compose run --rm oiko homekit pair &lt;code&gt;</code>, then <code>docker compose restart</code>.
+      When Oiko tells of a newer release, replace the <code>go run</code> command of the Dockerfile with the one it shows, and run <code>docker compose up -d --build</code> again.
+    </p>
+  </div>
+
   <h2><code>data/config.json</code> <button type="button" data-copy="config">Copy</button></h2>
   <pre id="config"></pre>
 </section>

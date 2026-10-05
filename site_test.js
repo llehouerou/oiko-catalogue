@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { blocked, command, config, key, types } from "./site/catalogue.js";
+import { blocked, command, compose, config, dockerfile, key, types } from "./site/catalogue.js";
 
 const all = types(JSON.parse(readFileSync(new URL("testdata/index.json", import.meta.url))));
 const pick = (...keys) => keys.map((k) => all.find((t) => key(t) === k));
@@ -48,9 +48,53 @@ test("command: one -with per module, sorted by module path", () => {
   );
 });
 
-test("command refuses types built against different Oikos", () => {
+test("command refuses types built against different Oikos, or none", () => {
   const [h, n] = pick(hue, nanoleaf);
-  assert.throws(() => command([h, { ...n, oiko: "v0.3.0" }]), /different Oikos/);
+  assert.throws(() => command([h, { ...n, oiko: "v0.3.0" }]), /want one Oiko, got v0.2.0, v0.3.0/);
+  assert.throws(() => command([h], "v0.3.0"), /want one Oiko/);
+  assert.throws(() => command([]), /want one Oiko, got none/);
+});
+
+test("command with an explicit Oiko", () => {
+  assert.equal(command([], "v0.2.0"), "go run github.com/llehouerou/oiko/cmd/oiko-build@v0.2.0 \\\n  -o oiko");
+  assert.equal(command(pick(hue), "v0.2.0"), command(pick(hue)));
+});
+
+test("dockerfile: its RUN holds the command as is", () => {
+  assert.equal(
+    dockerfile(pick(nanoleaf, hue)),
+    `FROM golang:1 AS build
+ENV CGO_ENABLED=0 GOTOOLCHAIN=auto
+WORKDIR /src
+RUN go run github.com/llehouerou/oiko/cmd/oiko-build@v0.2.0 \\
+  -with github.com/someone/oiko-hue@v1.2.0 \\
+  -with github.com/someone/oiko-lights@v0.3.0 \\
+  -o oiko
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /src/oiko /oiko
+ENV OIKO_INSTALL=docker
+VOLUME /data
+ENTRYPOINT ["/oiko", "-data", "/data"]
+`,
+  );
+  assert.ok(dockerfile([], "v0.2.0").includes(`RUN ${command([], "v0.2.0")}\n`));
+});
+
+test("compose", () => {
+  assert.equal(
+    compose(),
+    `services:
+  oiko:
+    build: .
+    network_mode: host
+    user: "1000:1000"  # your id -u:id -g
+    volumes:
+      - ./data:/data
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+`,
+  );
 });
 
 test("config: the examples, by type name", () => {

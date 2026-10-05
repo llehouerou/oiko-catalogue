@@ -40,11 +40,15 @@ export function blocked(type, picked) {
 }
 
 // command is the oiko-build command building an Oiko with the picked types,
-// each module at its latest version.
-export function command(picked) {
+// each module at its latest version, and the Oiko they were built against, or
+// oiko when given.
+export function command(picked, oiko) {
   const oikos = new Set(picked.map((t) => t.oiko));
-  if (oikos.size > 1) {
-    throw new Error(`the picked types were built against different Oikos: ${[...oikos].join(", ")}`);
+  if (oiko) {
+    oikos.add(oiko);
+  }
+  if (oikos.size !== 1) {
+    throw new Error(`want one Oiko, got ${[...oikos].join(", ") || "none"}`);
   }
   const modules = new Map(picked.map((t) => [t.module, t.latest]));
   return [
@@ -52,6 +56,36 @@ export function command(picked) {
     ...[...modules.keys()].sort(compare).map((m) => `  -with ${m}@${modules.get(m)} \\`),
     "  -o oiko",
   ].join("\n");
+}
+
+// dockerfile is a Dockerfile building an Oiko with the picked types. Its RUN
+// holds command as is: Oiko's update banner names the line to replace.
+export function dockerfile(picked, oiko) {
+  return `FROM golang:1 AS build
+ENV CGO_ENABLED=0 GOTOOLCHAIN=auto
+WORKDIR /src
+RUN ${command(picked, oiko)}
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /src/oiko /oiko
+ENV OIKO_INSTALL=docker
+VOLUME /data
+ENTRYPOINT ["/oiko", "-data", "/data"]
+`;
+}
+
+// compose is the compose.yaml running the Dockerfile's image.
+export function compose() {
+  return `services:
+  oiko:
+    build: .
+    network_mode: host
+    user: "1000:1000"  # your id -u:id -g
+    volumes:
+      - ./data:/data
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+`;
 }
 
 // config is a data/config.json starting from the picked types' examples.
@@ -99,6 +133,16 @@ if (typeof document !== "undefined") {
       setTimeout(() => (button.textContent = "Copy"), 1500);
     });
   }
+  const tabs = [...document.querySelectorAll("button[role=tab]")];
+  for (const tab of tabs) {
+    tab.addEventListener("click", () => {
+      for (const t of tabs) {
+        t.setAttribute("aria-selected", t === tab);
+        document.getElementById(t.getAttribute("aria-controls")).hidden = t !== tab;
+      }
+    });
+  }
+  document.getElementById("compose").textContent = compose();
 
   function render() {
     const chosen = [...picked.values()];
@@ -113,6 +157,7 @@ if (typeof document !== "undefined") {
     document.getElementById("placeholder").hidden = chosen.length > 0;
     if (chosen.length > 0) {
       document.getElementById("command").textContent = command(chosen);
+      document.getElementById("dockerfile").textContent = dockerfile(chosen);
       document.getElementById("config").textContent = config(chosen);
     }
   }
