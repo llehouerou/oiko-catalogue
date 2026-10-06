@@ -34,7 +34,7 @@
         }
       ],
       "latest": "v0.3.0",
-      "oiko": "v0.5.0",
+      "oiko": "v0.6.3",
       "compatible": true
     },
     {
@@ -56,7 +56,7 @@
         }
       ],
       "latest": "v0.1.0",
-      "oiko": "v0.5.0",
+      "oiko": "v0.6.3",
       "compatible": true
     }
   ],
