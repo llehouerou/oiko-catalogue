@@ -5,7 +5,7 @@
       "repo": "https://github.com/llehouerou/oiko-arlo",
       "types": {
         "arlo": {
-          "description": "Arlo cameras through Arlo's cloud: motion, battery and connection of each camera, and the location's mode (standby, armHome, armAway), which it can set. Two-factor codes are read over IMAP.",
+          "description": "Arlo cameras through Arlo's cloud: the Picture, Live view, Recordings (Arlo's library) and an Event announcing each new one, motion, battery and connection of each camera, and the location's mode (standby, armHome, armAway), which it can set. Two-factor codes are read over IMAP.",
           "config": {
             "email": "oiko@example.com",
             "passwordFile": "/path/to/arlo-password",
@@ -31,10 +31,30 @@
         {
           "version": "v0.3.0",
           "minOiko": "v0.5.0"
+        },
+        {
+          "version": "v0.4.0",
+          "minOiko": "v0.7.0"
+        },
+        {
+          "version": "v0.5.0",
+          "minOiko": "v0.8.0"
+        },
+        {
+          "version": "v0.6.0",
+          "minOiko": "v0.9.0"
+        },
+        {
+          "version": "v0.7.0",
+          "minOiko": "v0.9.2"
+        },
+        {
+          "version": "v0.7.1",
+          "minOiko": "v0.9.2"
         }
       ],
-      "latest": "v0.3.0",
-      "oiko": "v0.6.3",
+      "latest": "v0.7.1",
+      "oiko": "v0.9.2",
       "compatible": true
     },
     {
@@ -56,7 +76,7 @@
         }
       ],
       "latest": "v0.1.0",
-      "oiko": "v0.6.3",
+      "oiko": "v0.9.2",
       "compatible": true
     }
   ],
