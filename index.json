@@ -63,7 +63,7 @@
         }
       ],
       "latest": "v0.8.0",
-      "oiko": "v0.10.1",
+      "oiko": "v0.10.2",
       "compatible": true
     },
     {
@@ -90,7 +90,7 @@
         }
       ],
       "latest": "v0.2.0",
-      "oiko": "v0.10.1",
+      "oiko": "v0.10.2",
       "compatible": true
     }
   ],
