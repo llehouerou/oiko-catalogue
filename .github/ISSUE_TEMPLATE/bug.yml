@@ -1,0 +1,62 @@
+name: Bug report
+description: The catalogue's site or index does not work as it should, e.g. a type missing, listed wrong, or marked as failing to build.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Listing a type needs no issue.** The catalogue lists every repository with the
+        `oiko-bridge` topic, an OSI-approved license GitHub recognises, a released module at its
+        root and an `oiko-bridge.json` manifest
+        ([listing rules](https://github.com/llehouerou/oiko-catalogue#listing-a-type-of-bridge),
+        [ADR 0020 of Oiko](https://github.com/llehouerou/oiko/blob/main/docs/adr/0020-a-catalogue-of-types-of-bridge-indexed-from-a-manifest.md)).
+        The index is rebuilt every day: a type that meets the rules appears by the next day.
+        A type missing after that is a bug: check
+        [`rejected` in index.json](https://github.com/llehouerou/oiko-catalogue/blob/main/index.json)
+        first, it says why.
+
+        A bug in a type itself goes on that type's repository.
+  - type: input
+    id: type
+    attributes:
+      label: Type of Bridge
+      description: The repository of the type concerned, if any.
+      placeholder: https://github.com/someone/oiko-hue
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: On the site, in index.json, or in what the site gave you to build or run Oiko.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+  - type: markdown
+    attributes:
+      value: |
+        **Before you paste output or configuration:** it can hold tokens, host names, IP and MAC
+        addresses, device serials and people's names. Replace them with made-up ones; this issue is
+        public.
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: The build's output, or `oiko -version`, when one is involved.
+      render: text
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      description: When the site is involved.
+      placeholder: Firefox 140, Chrome 138 on Android…

@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question
+    url: https://github.com/llehouerou/oiko/discussions/categories/q-a
+    about: How do I…, why does the catalogue…? Ask in Oiko's Discussions › Q&A.
+  - name: Idea
+    url: https://github.com/llehouerou/oiko/discussions/categories/ideas
+    about: A feature you would like. Propose it in Oiko's Discussions › Ideas.
+  - name: Request or announce a type of Bridge
+    url: https://github.com/llehouerou/oiko/discussions/categories/types-of-bridge
+    about: A system no type reaches yet, or one you wrote. Oiko's Discussions › Types of Bridge.
+  - name: Report a vulnerability or a malicious type
+    url: https://github.com/llehouerou/oiko-catalogue/security/advisories/new
+    about: Never in a public issue. Report it privately, as SECURITY.md says.
