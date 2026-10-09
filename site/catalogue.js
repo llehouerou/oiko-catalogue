@@ -183,7 +183,8 @@ function compare(a, b) {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-// The page.
+// The page: a card per type, picked with a click; a tray of those picked opens what builds an
+// Oiko with them, in a dialog.
 
 if (typeof document !== "undefined") {
   const response = await fetch("index.json");
@@ -193,7 +194,7 @@ if (typeof document !== "undefined") {
   const all = types(await response.json());
   const picked = new Map(); // by key
   const list = document.getElementById("types");
-  const rows = all.map((type) => row(type, () => {
+  const cards = all.map((type) => card(type, () => {
     if (picked.has(key(type))) {
       picked.delete(key(type));
     } else {
@@ -201,25 +202,38 @@ if (typeof document !== "undefined") {
     }
     render();
   }));
-  list.replaceChildren(...rows.map((r) => r.element));
-  for (const r of rows) {
+  list.replaceChildren(...cards.map((c) => c.element));
+  for (const c of cards) {
     // shortcut: a name two modules provide anchors the first, by module path, and a name the
     // page's own ids take (docker, config…) none; rename the page's ids once such a type is listed.
-    if (!document.getElementById(r.type.name)) {
-      r.element.id = r.type.name;
+    if (!document.getElementById(c.type.name)) {
+      c.element.id = c.type.name;
     }
   }
   if (all.length === 0) {
     list.textContent = "No type of Bridge is indexed yet.";
   }
   if (location.hash) {
-    location.replace(location.hash); // the rows came after the page's own scroll to its #<type>
+    location.replace(location.hash); // the cards came after the page's own scroll to its #<type>
   }
+
+  const search = document.getElementById("search");
+  search.addEventListener("input", () => {
+    const words = search.value.toLowerCase();
+    for (const c of cards) {
+      c.element.hidden = !`${c.type.name} ${c.type.description} ${c.type.module}`.toLowerCase().includes(words);
+    }
+    document.getElementById("empty").hidden = all.length === 0 || cards.some((c) => !c.element.hidden);
+  });
+
+  const output = document.getElementById("output");
+  document.getElementById("build").addEventListener("click", () => output.showModal());
+  output.addEventListener("click", (e) => e.target === output && output.close()); // on its backdrop
   for (const button of document.querySelectorAll("button[data-copy]")) {
     button.addEventListener("click", async () => {
       await navigator.clipboard.writeText(document.getElementById(button.dataset.copy).textContent);
-      button.textContent = "Copied";
-      setTimeout(() => (button.textContent = "Copy"), 1500);
+      button.lastChild.textContent = "Copied";
+      setTimeout(() => (button.lastChild.textContent = "Copy"), 1500);
     });
   }
   const tabs = [...document.querySelectorAll("button[role=tab]")];
@@ -236,16 +250,22 @@ if (typeof document !== "undefined") {
 
   function render() {
     const chosen = [...picked.values()];
-    for (const r of rows) {
-      const why = blocked(r.type, chosen);
-      r.input.checked = picked.has(key(r.type));
-      r.input.disabled = why !== "";
-      r.element.classList.toggle("blocked", why !== "");
-      r.element.title = why;
+    for (const c of cards) {
+      const why = blocked(c.type, chosen);
+      c.input.checked = picked.has(key(c.type));
+      c.input.disabled = why !== "";
+      c.element.classList.toggle("picked", c.input.checked);
+      c.element.classList.toggle("blocked", why !== "");
+      c.element.title = why;
+      c.why.textContent = c.type.compatible ? why : ""; // a type that does not build says so already
     }
-    document.getElementById("output").hidden = chosen.length === 0;
-    document.getElementById("placeholder").hidden = chosen.length > 0;
+    document.getElementById("tray").hidden = chosen.length === 0;
     if (chosen.length > 0) {
+      document.getElementById("stack").replaceChildren(...chosen.map(monogram));
+      const count = document.createElement("b");
+      count.textContent = chosen.length;
+      document.getElementById("count").replaceChildren(count, " picked");
+      document.getElementById("summary").textContent = `Oiko ${chosen[0].oiko} with ${chosen.map((t) => t.name).join(", ")}`;
       document.getElementById("command").textContent = command(chosen);
       document.getElementById("dockerfile").textContent = dockerfile(chosen);
       document.getElementById("config").textContent = config(chosen);
@@ -256,7 +276,9 @@ if (typeof document !== "undefined") {
   render();
 }
 
-function row(type, toggle) {
+// card is a type's card: its checkbox (the round + on the right, which a click anywhere on the
+// card toggles) and name, its module, description, version, license and whether it builds.
+function card(type, toggle) {
   const element = document.createElement("li");
   const label = document.createElement("label");
   const input = document.createElement("input");
@@ -264,26 +286,66 @@ function row(type, toggle) {
   input.addEventListener("change", toggle);
   const name = document.createElement("strong");
   name.textContent = type.name;
-  const description = document.createElement("span");
-  description.textContent = type.description;
-  label.append(input, " ", name, " ", description);
+  const add = document.createElement("span");
+  add.className = "add";
+  add.append(icon("plus"), icon("check"));
+  label.append(input, monogram(type), name, add);
 
-  const module = document.createElement("div");
+  const module = document.createElement("a");
   module.className = "module";
-  const link = document.createElement("a");
-  link.href = type.repo;
-  link.textContent = `${type.module}@${type.latest}`;
-  module.append(link, `, ${type.license}`, type.compatible ? `, builds with Oiko ${type.oiko}` : "");
-  element.append(label, module);
+  module.href = type.repo;
+  module.textContent = type.module;
+  const description = document.createElement("p");
+  description.className = "description";
+  description.textContent = type.description;
+  const chips = document.createElement("footer");
+  chips.append(
+    chip("tag", type.latest),
+    chip("license", type.license),
+    type.compatible ? chip("check", `builds with Oiko ${type.oiko}`) : chip("alert", `does not build with Oiko ${type.oiko}`, "failing"),
+  );
+  const why = document.createElement("p");
+  why.className = "why";
+  element.append(label, module, description, chips, why);
 
   if (!type.compatible) {
     const details = document.createElement("details");
     const summary = document.createElement("summary");
-    summary.textContent = `Does not build with Oiko ${type.oiko}`;
+    summary.textContent = "Why it does not build";
     const error = document.createElement("pre");
     error.textContent = type.error;
     details.append(summary, error);
     element.append(details);
   }
-  return { type, element, input };
+  element.addEventListener("click", (e) => {
+    if (!e.target.closest("a, details, label") && !input.disabled) {
+      input.click();
+    }
+  });
+  return { type, element, input, why };
+}
+
+// monogram is a type's badge: its initial, lit once picked.
+function monogram(type) {
+  const span = document.createElement("span");
+  span.className = "monogram";
+  span.textContent = type.name[0];
+  return span;
+}
+
+function chip(name, text, className = "") {
+  const span = document.createElement("span");
+  span.className = `chip ${className}`;
+  span.append(icon(name), text);
+  return span;
+}
+
+// icon is one of the page's Material Design Icons, a symbol of its sprite.
+function icon(name) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "i");
+  const use = document.createElementNS(svg.namespaceURI, "use");
+  use.setAttribute("href", `#i-${name}`);
+  svg.append(use);
+  return svg;
 }
