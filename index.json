@@ -52,9 +52,17 @@
         {
           "version": "v0.7.1",
           "minOiko": "v0.9.2"
+        },
+        {
+          "version": "v0.7.2",
+          "minOiko": "v0.9.2"
+        },
+        {
+          "version": "v0.8.0",
+          "minOiko": "v0.10.1"
         }
       ],
-      "latest": "v0.7.1",
+      "latest": "v0.8.0",
       "oiko": "v0.10.1",
       "compatible": true
     },
@@ -75,9 +83,13 @@
         {
           "version": "v0.1.0",
           "minOiko": "v0.5.0"
+        },
+        {
+          "version": "v0.2.0",
+          "minOiko": "v0.10.1"
         }
       ],
-      "latest": "v0.1.0",
+      "latest": "v0.2.0",
       "oiko": "v0.10.1",
       "compatible": true
     }
