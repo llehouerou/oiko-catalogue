@@ -3,6 +3,7 @@
     {
       "module": "example.com/oiko-sonos",
       "repo": "https://github.com/someone/oiko-sonos",
+      "license": "MIT",
       "types": {
         "sonos": {
           "description": "Sonos speakers",
@@ -23,6 +24,7 @@
     {
       "module": "github.com/someone/oiko-hue",
       "repo": "https://github.com/someone/oiko-hue",
+      "license": "Apache-2.0",
       "types": {
         "hue": {
           "description": "Philips Hue lights through a Hue Bridge",
@@ -58,6 +60,7 @@
     {
       "module": "github.com/someone/oiko-lights",
       "repo": "https://github.com/someone/oiko-lights",
+      "license": "GPL-3.0-or-later",
       "types": {
         "hue": {
           "description": "Philips Hue lights, straight from the bulbs",

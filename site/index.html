@@ -8,7 +8,8 @@
   :root { color-scheme: light dark; font-family: system-ui, sans-serif; line-height: 1.4; }
   body { max-width: 50rem; margin: 2rem auto; padding: 0 1rem; }
   #types { list-style: none; padding: 0; }
-  #types > li { padding: 0.5rem 0; border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent); }
+  #types > li { padding: 0.5rem; border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent); scroll-margin-top: 1rem; }
+  #types > li:target { background: color-mix(in srgb, Highlight 20%, transparent); outline: 2px solid Highlight; }
   li.blocked { opacity: 0.55; }
   label { cursor: pointer; }
   li.blocked label { cursor: not-allowed; }
@@ -27,8 +28,9 @@
 <p>
   Types of Bridge for <a href="https://github.com/llehouerou/oiko">Oiko</a>, written by others.
   Pick some to build an Oiko with them. Oiko has types built in too: see
-  <a href="https://github.com/llehouerou/oiko#readme">its README</a>.
-  To list yours, see <a href="https://github.com/llehouerou/oiko-catalogue#listing-a-type-of-bridge">the catalogue's README</a>.
+  <a href="https://github.com/llehouerou/oiko/blob/main/docs/configure.md#bridges">Configure</a>.
+  To write a type, see <a href="https://github.com/llehouerou/oiko/blob/main/docs/write-a-bridge.md">Write a type of Bridge</a>;
+  to list it, <a href="https://github.com/llehouerou/oiko-catalogue#listing-a-type-of-bridge">the catalogue's README</a>.
 </p>
 
 <ul id="types"><li>Loading…</li></ul>

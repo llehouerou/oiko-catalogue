@@ -54,6 +54,8 @@ func TestIndexCheck(t *testing.T) {
 		"module path":       func(ix *Index) { hue(ix).Module = "github.com/someone/oiko-hue;rm -rf" },
 		"repo not GitHub":   func(ix *Index) { hue(ix).Repo = "https://evil.example/someone/oiko-hue" },
 		"repo path":         func(ix *Index) { hue(ix).Repo = "https://github.com/someone/../oiko-hue" },
+		"no license":        func(ix *Index) { hue(ix).License = "" },
+		"license not SPDX":  func(ix *Index) { hue(ix).License = "MIT <script>" },
 		"invalid type":      func(ix *Index) { hue(ix).Types["hue"] = Type{"Hue", json.RawMessage(`{"type": "lifx"}`)} },
 		"no types":          func(ix *Index) { hue(ix).Types = nil },
 		"no versions":       func(ix *Index) { hue(ix).Versions = nil },
@@ -97,6 +99,25 @@ func TestMinOiko(t *testing.T) {
 	}
 }
 
+func TestLicenseReason(t *testing.T) {
+	osi := map[string]bool{"Apache-2.0": true, "MIT": true}
+	for search, want := range map[string]string{
+		`{"license": {"spdx_id": "Apache-2.0"}}`:  "",
+		`{"license": {"spdx_id": "MIT"}}`:         "",
+		`{"license": {"spdx_id": "BUSL-1.1"}}`:    "license BUSL-1.1 is not OSI-approved",
+		`{"license": {"spdx_id": "NOASSERTION"}}`: "no license GitHub recognises",
+		`{"license": null}`:                       "no license GitHub recognises",
+	} {
+		var r repository
+		if err := json.Unmarshal([]byte(search), &r); err != nil {
+			t.Fatal(err)
+		}
+		if got := licenseReason(r, osi); got != want {
+			t.Errorf("%s: %q, want %q", search, got, want)
+		}
+	}
+}
+
 func TestTail(t *testing.T) {
 	var out []string
 	for i := range 60 {
@@ -114,7 +135,7 @@ func TestTail(t *testing.T) {
 func TestCheck(t *testing.T) {
 	dir := t.TempDir()
 	module := func(mod, repo string, types ...string) Module {
-		m := Module{Module: mod, Repo: repoPrefix + repo, Types: map[string]Type{}, Versions: []Version{{Version: "v1.0.0"}}, Latest: "v1.0.0", Oiko: "v0.3.0"}
+		m := Module{Module: mod, Repo: repoPrefix + repo, License: "MIT", Types: map[string]Type{}, Versions: []Version{{Version: "v1.0.0"}}, Latest: "v1.0.0", Oiko: "v0.3.0"}
 		for _, t := range types {
 			m.Types[t] = Type{"A type", json.RawMessage(`{}`)}
 		}

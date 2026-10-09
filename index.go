@@ -23,7 +23,8 @@ type Index struct {
 type Module struct {
 	Module   string          `json:"module"`
 	Repo     string          `json:"repo"`
-	Types    map[string]Type `json:"types"` // from the latest version's manifest
+	License  string          `json:"license"` // the SPDX id GitHub detects on Repo
+	Types    map[string]Type `json:"types"`   // from the latest version's manifest
 	Versions []Version       `json:"versions"`
 	Latest   string          `json:"latest"`
 	// Oiko is the release of Oiko Latest was built against.
@@ -114,6 +115,9 @@ func (m Module) check() error {
 	if !validRepo(m.Repo) {
 		return fmt.Errorf("repo %q is not a GitHub repository", m.Repo)
 	}
+	if !spdxID(m.License) {
+		return fmt.Errorf("license %q is not an SPDX id", m.License)
+	}
 	if err := checkTypes(m.Types); err != nil {
 		return err
 	}
@@ -154,6 +158,10 @@ func canonical(v string) bool {
 func validRepo(repo string) bool {
 	owner, name, ok := strings.Cut(strings.TrimPrefix(repo, repoPrefix), "/")
 	return strings.HasPrefix(repo, repoPrefix) && ok && githubName(owner) && githubName(name)
+}
+
+func spdxID(s string) bool {
+	return s != "" && strings.Trim(s, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.+") == ""
 }
 
 func githubName(s string) bool {

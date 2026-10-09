@@ -49,6 +49,10 @@ func Build(ctx context.Context, prev Index, dir string, force bool) error {
 	if err != nil {
 		return err
 	}
+	osi, err := osiApproved(ctx)
+	if err != nil {
+		return err
+	}
 	previous := map[string]Module{}
 	known := map[string]string{} // module@version → minimum Oiko
 	for _, m := range prev.Modules {
@@ -61,6 +65,10 @@ func Build(ctx context.Context, prev Index, dir string, force bool) error {
 	indexedFrom := map[string]string{} // module → repo
 	for i, r := range repos {
 		repo := repoPrefix + r.FullName
+		if reason := licenseReason(r, osi); reason != "" {
+			w.Index.Rejected = append(w.Index.Rejected, Rejected{repo, reason})
+			continue
+		}
 		m, reason, err := resolve(ctx, dir, r, known)
 		if err != nil {
 			return fmt.Errorf("%s: %w", repo, err)
@@ -73,7 +81,7 @@ func Build(ctx context.Context, prev Index, dir string, force bool) error {
 			continue
 		}
 		indexedFrom[m.Module] = repo
-		m.Repo, m.Oiko = repo, oiko
+		m.Repo, m.License, m.Oiko = repo, r.License.SPDXID, oiko
 		if p, ok := previous[m.Module]; ok && !force && p.Latest == m.Latest && p.Oiko == oiko {
 			m.Compatible, m.Error = p.Compatible, p.Error
 		} else {
@@ -299,6 +307,49 @@ func list(types []string) string {
 type repository struct {
 	FullName      string `json:"full_name"`
 	DefaultBranch string `json:"default_branch"`
+	License       *struct {
+		SPDXID string `json:"spdx_id"`
+	} `json:"license"` // nil when GitHub detects no LICENSE
+}
+
+// licenseReason is why r is not indexed for its license, or "": the SPDX id
+// GitHub detects on it must be OSI-approved (ADR 0047 of Oiko).
+func licenseReason(r repository, osi map[string]bool) string {
+	switch {
+	case r.License == nil || r.License.SPDXID == "" || r.License.SPDXID == "NOASSERTION":
+		return "no license GitHub recognises"
+	case !osi[r.License.SPDXID]:
+		return "license " + r.License.SPDXID + " is not OSI-approved"
+	}
+	return ""
+}
+
+// osiApproved is the set of the SPDX ids of the OSI-approved licenses, from
+// the SPDX license list.
+func osiApproved(ctx context.Context) (map[string]bool, error) {
+	data, err := fetch(ctx, "https://spdx.org/licenses/licenses.json")
+	if err != nil {
+		return nil, err
+	}
+	var list struct {
+		Licenses []struct {
+			LicenseID     string `json:"licenseId"`
+			IsOsiApproved bool   `json:"isOsiApproved"`
+		} `json:"licenses"`
+	}
+	if err := json.Unmarshal(data, &list); err != nil {
+		return nil, fmt.Errorf("SPDX license list: %w", err)
+	}
+	osi := map[string]bool{}
+	for _, l := range list.Licenses {
+		if l.IsOsiApproved {
+			osi[l.LicenseID] = true
+		}
+	}
+	if len(osi) == 0 {
+		return nil, errors.New("SPDX license list: no OSI-approved license")
+	}
+	return osi, nil
 }
 
 // search lists the repositories with the topic, sorted by name.

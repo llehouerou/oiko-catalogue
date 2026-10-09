@@ -1,17 +1,24 @@
 # Oiko catalogue
 
 The catalogue of types of Bridge for [Oiko](https://github.com/llehouerou/oiko): Go modules
-others write, compiled into Oiko with `oiko-build`. [`index.json`](index.json) lists them,
-rebuilt every day by [a workflow](.github/workflows/index.yml), and
-[the site](https://llehouerou.github.io/oiko-catalogue/) shows them.
+others write, each in its own repository, compiled into Oiko with `oiko-build`. To use some, open
+[the site](https://llehouerou.github.io/oiko-catalogue/): pick types and get the commands building
+and running an Oiko with them. To write one, follow
+[Write a type of Bridge](https://github.com/llehouerou/oiko/blob/main/docs/write-a-bridge.md),
+then come back here to list it. [`index.json`](index.json) lists the types, rebuilt every day by
+[a workflow](.github/workflows/index.yml).
 
 ## Listing a type of Bridge
 
 1. Give the repository the GitHub topic `oiko-bridge`.
-2. Put the module at the repository's root, its root package registering every type it
+2. Give it a `LICENSE` GitHub recognises, under an
+   [OSI-approved](https://opensource.org/licenses) license: the catalogue lists a type only when
+   the SPDX id GitHub detects on its repository is OSI-approved, and shows that license.
+   Apache-2.0, Oiko's, is recommended.
+3. Put the module at the repository's root, its root package registering every type it
    provides (`bridge.Register` in `init`): `oiko-build` imports that package.
-3. Add `oiko-bridge.json`, the manifest below, at the module's root.
-4. Tag a release (`v1.2.0`; pre-releases are left out). The catalogue reads the manifest of
+4. Add `oiko-bridge.json`, the manifest below, at the module's root.
+5. Tag a release (`v1.2.0`; pre-releases are left out). The catalogue reads the manifest of
    the latest release.
 
 ### `oiko-bridge.json`
@@ -45,8 +52,9 @@ configuration and a patch neither breaks nor adds, so a type requiring `v0.3.1` 
 
 Every day, and on demand, the workflow:
 
-1. searches GitHub for the repositories with the topic, and reads the module path of each from
-   the `go.mod` at its root;
+1. searches GitHub for the repositories with the topic, keeps those whose license GitHub detects
+   as OSI-approved (the [SPDX license list](https://spdx.org/licenses/) says which), and reads
+   the module path of each from the `go.mod` at its root;
 2. lists the module's versions from the Go module proxy, pre-releases left out, and the Oiko
    each one's `go.mod` requires;
 3. reads the manifest of the latest release;
@@ -61,6 +69,7 @@ Every day, and on demand, the workflow:
     {
       "module": "github.com/someone/oiko-hue",
       "repo": "https://github.com/someone/oiko-hue",
+      "license": "Apache-2.0",
       "types": {
         "hue": {
           "description": "Philips Hue lights through a Hue Bridge",
@@ -82,12 +91,13 @@ Every day, and on demand, the workflow:
 }
 ```
 
-- `modules`: the modules indexed, by module path. `types` are the latest release's, `oiko` the
-  Oiko release it was built against, `compatible` whether it builds and runs, and `error`, when
-  not, the end of the build's output. `minOiko` is absent when a version's `go.mod` requires no
-  Oiko.
-- `rejected`: the repositories with the topic not indexed, and why: no release, no or an
-  invalid manifest, a module not at the root, or types that differ from those registered.
+- `modules`: the modules indexed, by module path. `license` is the SPDX id GitHub detects on the
+  repository, `types` are the latest release's, `oiko` the Oiko release it was built against,
+  `compatible` whether it builds and runs, and `error`, when not, the end of the build's output.
+  `minOiko` is absent when a version's `go.mod` requires no Oiko.
+- `rejected`: the repositories with the topic not indexed, and why: no license GitHub recognises
+  or one not OSI-approved, no release, no or an invalid manifest, a module not at the root, or
+  types that differ from those registered.
 
 Building a type runs code nobody reviewed: the job that builds and runs it may only read, and
 runs it in a step given no token; another job validates the index and commits it.
@@ -95,7 +105,9 @@ runs it in a step given no token; another job validates the index and commits it
 ## Site
 
 [`site/`](site) is the site, published on GitHub Pages by [a workflow](.github/workflows/pages.yml)
-whenever it or `index.json` changes on `main`. It lists the indexed types; the visitor picks
+whenever it or `index.json` changes on `main`. It lists the indexed types, each with its license
+and at a stable anchor a type's README may link, `#<type>`
+([`#arlo`](https://llehouerou.github.io/oiko-catalogue/#arlo)); the visitor picks
 some and gets the `oiko-build` command building an Oiko with them, each module at its latest
 version, and a `data/config.json` with their sections of `bridges`, from their manifests'
 `config`. A static page and one ES module, no build step: `site/index.json` is a link to the
@@ -128,3 +140,7 @@ go run . build -work /tmp/work [-force]   # GITHUB_TOKEN for the search
 go run . check -work /tmp/work -index index.json
 go run . validate -index index.json
 ```
+
+[CONTRIBUTING.md](CONTRIBUTING.md) has the rest; [SECURITY.md](SECURITY.md) says how to report a
+vulnerability or a malicious type. The catalogue is under Apache-2.0 ([LICENSE](LICENSE),
+[NOTICE](NOTICE)).

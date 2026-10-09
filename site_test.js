@@ -20,6 +20,7 @@ test("types lists every indexed type, by name then module", () => {
     config: { host: "192.168.1.10" },
     module: "github.com/someone/oiko-hue",
     repo: "https://github.com/someone/oiko-hue",
+    license: "Apache-2.0",
     latest: "v1.2.0",
     oiko: "v0.3.0",
     compatible: true,

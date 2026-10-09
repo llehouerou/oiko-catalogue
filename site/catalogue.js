@@ -16,6 +16,7 @@ export function types(index) {
         config: t.config,
         module: m.module,
         repo: m.repo,
+        license: m.license,
         latest: m.latest,
         oiko: m.oiko,
         compatible: m.compatible,
@@ -201,8 +202,18 @@ if (typeof document !== "undefined") {
     render();
   }));
   list.replaceChildren(...rows.map((r) => r.element));
+  for (const r of rows) {
+    // shortcut: a name two modules provide anchors the first, by module path, and a name the
+    // page's own ids take (docker, config…) none; rename the page's ids once such a type is listed.
+    if (!document.getElementById(r.type.name)) {
+      r.element.id = r.type.name;
+    }
+  }
   if (all.length === 0) {
     list.textContent = "No type of Bridge is indexed yet.";
+  }
+  if (location.hash) {
+    location.replace(location.hash); // the rows came after the page's own scroll to its #<type>
   }
   for (const button of document.querySelectorAll("button[data-copy]")) {
     button.addEventListener("click", async () => {
@@ -262,7 +273,7 @@ function row(type, toggle) {
   const link = document.createElement("a");
   link.href = type.repo;
   link.textContent = `${type.module}@${type.latest}`;
-  module.append(link, type.compatible ? ` builds with Oiko ${type.oiko}` : "");
+  module.append(link, `, ${type.license}`, type.compatible ? `, builds with Oiko ${type.oiko}` : "");
   element.append(label, module);
 
   if (!type.compatible) {
