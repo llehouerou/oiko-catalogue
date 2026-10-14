@@ -1,5 +1,5 @@
 {
-  "oiko": "v0.10.2",
+  "oiko": "v0.12.0",
   "modules": [
     {
       "module": "github.com/llehouerou/oiko-arlo",
@@ -64,7 +64,7 @@
         }
       ],
       "latest": "v0.8.0",
-      "oiko": "v0.10.2",
+      "oiko": "v0.12.0",
       "compatible": true
     },
     {
@@ -98,7 +98,7 @@
         }
       ],
       "latest": "v0.1.0",
-      "oiko": "v0.10.2",
+      "oiko": "v0.12.0",
       "compatible": true
     },
     {
@@ -125,7 +125,7 @@
         }
       ],
       "latest": "v0.2.0",
-      "oiko": "v0.10.2",
+      "oiko": "v0.12.0",
       "compatible": true
     }
   ],
