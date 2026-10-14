@@ -61,7 +61,7 @@ func Build(ctx context.Context, prev Index, dir string, force bool) error {
 			known[m.Module+"@"+v.Version] = v.MinOiko
 		}
 	}
-	w := work{Built: map[string]string{}}
+	w := work{Index: Index{Oiko: oiko}, Built: map[string]string{}}
 	indexedFrom := map[string]string{} // module → repo
 	for i, r := range repos {
 		repo := repoPrefix + r.FullName
@@ -114,7 +114,7 @@ func Check(ctx context.Context, dir string) (Index, error) {
 	if err := json.Unmarshal(data, &w); err != nil {
 		return Index{}, err
 	}
-	ix := Index{Rejected: w.Index.Rejected}
+	ix := Index{Oiko: w.Index.Oiko, Rejected: w.Index.Rejected}
 	for _, m := range w.Index.Modules {
 		if exe, ok := w.Built[m.Module]; ok {
 			out, err := runVersion(ctx, exe)

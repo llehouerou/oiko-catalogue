@@ -1,5 +1,8 @@
-# Checks the site's Docker output: the Dockerfile and compose.yaml it gives
-# for no type of Bridge build the latest Oiko, and it serves its dashboard.
+# Checks the site's Docker output against the latest Oiko, on every change to
+# the site and daily, so a release breaking it is caught within a day: the
+# Dockerfile and compose.yaml it gives for no type of Bridge build Oiko, and
+# the compose.yaml it gives with none picked runs Oiko's stock image of the
+# release (ADR 0057 of Oiko); either serves its dashboard.
 name: docker
 
 on:
@@ -8,12 +11,18 @@ on:
     paths:
       - site/**
       - .github/workflows/docker.yml
+  schedule:
+    - cron: "43 5 * * *"
   workflow_dispatch:
 
 permissions: {}
 
 jobs:
   run:
+    strategy:
+      fail-fast: false
+      matrix:
+        way: [build, image]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -27,28 +36,50 @@ jobs:
       - name: Resolve the latest Oiko release
         id: oiko
         run: |
-          version=$(curl -fsS https://proxy.golang.org/github.com/llehouerou/oiko/@latest | jq -r .Version)
+          # The highest release the proxy lists, as go list's @latest and the indexer resolve it:
+          # its own @latest may lag a release by hours.
+          version=$(curl -fsS https://proxy.golang.org/github.com/llehouerou/oiko/@v/list | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+          test -n "$version"
           echo "Oiko $version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-      - name: Write the Dockerfile and compose.yaml
+      - name: Write the site's files
         env:
           OIKO: ${{ steps.oiko.outputs.version }}
+          WAY: ${{ matrix.way }}
         run: |
           mkdir -p "$RUNNER_TEMP/oiko/data"
           cd "$RUNNER_TEMP/oiko"
           node --input-type=module -e '
             import { writeFileSync } from "node:fs";
             const { compose, dockerfile } = await import(`${process.env.GITHUB_WORKSPACE}/site/catalogue.js`);
-            const c = compose();
+            const image = process.env.WAY === "image";
+            const c = compose(image ? process.env.OIKO : undefined);
             const user = `user: "${process.getuid()}:${process.getgid()}"`;
             if (!c.includes("user: \"1000:1000\"")) throw new Error("no user");
-            writeFileSync("Dockerfile", dockerfile([], process.env.OIKO));
+            if (!image) writeFileSync("Dockerfile", dockerfile([], process.env.OIKO));
             writeFileSync("compose.yaml", c.replace("user: \"1000:1000\"", user));
           '
-          cat Dockerfile compose.yaml
-      - name: Build and start Oiko
+          cat compose.yaml
+          if [ -f Dockerfile ]; then cat Dockerfile; fi
+      - name: Build Oiko
+        if: matrix.way == 'build'
         working-directory: ${{ runner.temp }}/oiko
-        run: docker compose up -d --build
+        run: docker compose build
+      - name: Pull Oiko's image
+        if: matrix.way == 'image'
+        working-directory: ${{ runner.temp }}/oiko
+        run: docker compose pull
+      - name: Check it is the release
+        working-directory: ${{ runner.temp }}/oiko
+        env:
+          OIKO: ${{ steps.oiko.outputs.version }}
+        run: |
+          got=$(docker compose run --rm -T oiko -version | head -1)
+          echo "$got"
+          test "$got" = "oiko $OIKO"
+      - name: Start Oiko
+        working-directory: ${{ runner.temp }}/oiko
+        run: docker compose up -d
       - name: Wait for its dashboard
         working-directory: ${{ runner.temp }}/oiko
         run: |

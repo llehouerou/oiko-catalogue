@@ -26,8 +26,8 @@ func TestIndexRoundTrips(t *testing.T) {
 	if got := fixture(t).Encode(); !bytes.Equal(got, data) {
 		t.Errorf("encoded:\n%s", got)
 	}
-	empty := Index{}.Encode()
-	if string(empty) != "{\n  \"modules\": [],\n  \"rejected\": []\n}\n" {
+	empty := Index{Oiko: "v0.3.0"}.Encode()
+	if string(empty) != "{\n  \"oiko\": \"v0.3.0\",\n  \"modules\": [],\n  \"rejected\": []\n}\n" {
 		t.Errorf("empty index: %s", empty)
 	}
 	if _, err := ParseIndex(empty); err != nil {
@@ -51,6 +51,7 @@ func TestParseIndexRefuses(t *testing.T) {
 func TestIndexCheck(t *testing.T) {
 	hue := func(ix *Index) *Module { return &ix.Modules[1] }
 	for name, change := range map[string]func(*Index){
+		"index oiko":        func(ix *Index) { ix.Oiko = "v0.3.0-rc.1" },
 		"module path":       func(ix *Index) { hue(ix).Module = "github.com/someone/oiko-hue;rm -rf" },
 		"repo not GitHub":   func(ix *Index) { hue(ix).Repo = "https://evil.example/someone/oiko-hue" },
 		"repo path":         func(ix *Index) { hue(ix).Repo = "https://github.com/someone/../oiko-hue" },
@@ -145,6 +146,7 @@ func TestCheck(t *testing.T) {
 	reused.Compatible = true
 	w := work{
 		Index: Index{
+			Oiko: "v0.3.0",
 			Modules: []Module{
 				module("github.com/someone/oiko-hue", "someone/oiko-hue", "hue", "hue-sensor"),
 				module("example.com/oiko-sonos", "someone/oiko-sonos", "sonos", "sonos-sub"),
@@ -173,6 +175,9 @@ func TestCheck(t *testing.T) {
 	}
 	if _, err := ParseIndex(ix.Encode()); err != nil {
 		t.Fatal(err)
+	}
+	if ix.Oiko != "v0.3.0" {
+		t.Errorf("oiko: %q", ix.Oiko)
 	}
 	got := map[string]Module{}
 	for _, m := range ix.Modules {

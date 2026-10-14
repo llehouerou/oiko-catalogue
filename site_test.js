@@ -96,6 +96,8 @@ test("compose", () => {
     restart: unless-stopped
 `,
   );
+  // Oiko's stock image instead: the same service, the image tagged with the release without its v.
+  assert.equal(compose("v0.12.0"), compose().replace("build: .", "image: ghcr.io/llehouerou/oiko:0.12.0"));
 });
 
 test("config: the examples, by type name", () => {

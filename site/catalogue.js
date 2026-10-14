@@ -5,6 +5,7 @@
 // The exported functions are pure, tested by site_test.js.
 
 const builder = "github.com/llehouerou/oiko/cmd/oiko-build";
+const image = "ghcr.io/llehouerou/oiko";
 
 // types lists every indexed type, by name, then module path.
 export function types(index) {
@@ -85,11 +86,13 @@ ENTRYPOINT ["/oiko", "-data", "/data"]
 `;
 }
 
-// compose is the compose.yaml running the Dockerfile's image.
-export function compose() {
+// compose is the compose.yaml running the Dockerfile's image or, given oiko, a
+// release of Oiko, its stock image of that release: ghcr.io/llehouerou/oiko,
+// tagged with the version without its v (ADR 0057 of Oiko).
+export function compose(oiko) {
   return `services:
   oiko:
-    build: .
+    ${oiko ? `image: ${image}:${oiko.replace(/^v/, "")}` : "build: ."}
     network_mode: host
     user: "1000:1000"  # your id -u:id -g
     volumes:
@@ -184,14 +187,15 @@ function compare(a, b) {
 }
 
 // The page: a card per type, picked with a click; a tray of those picked opens what builds an
-// Oiko with them, in a dialog.
+// Oiko with them, in a dialog. With none picked, it opens how to run Oiko's stock image.
 
 if (typeof document !== "undefined") {
   const response = await fetch("index.json");
   if (!response.ok) {
     throw new Error(`index.json: ${response.status}`);
   }
-  const all = types(await response.json());
+  const index = await response.json();
+  const all = types(index);
   const picked = new Map(); // by key
   const list = document.getElementById("types");
   const cards = all.map((type) => card(type, () => {
@@ -237,16 +241,13 @@ if (typeof document !== "undefined") {
     });
   }
   const tabs = [...document.querySelectorAll("button[role=tab]")];
-  for (const tab of tabs) {
-    tab.addEventListener("click", () => {
-      for (const t of tabs) {
-        t.setAttribute("aria-selected", t === tab);
-        document.getElementById(t.getAttribute("aria-controls")).hidden = t !== tab;
-      }
-      document.getElementById("shared").hidden = tab.hasAttribute("data-own-config");
+  let tab = tabs[0];
+  for (const t of tabs) {
+    t.addEventListener("click", () => {
+      tab = t;
+      render();
     });
   }
-  document.getElementById("compose").textContent = compose();
 
   function render() {
     const chosen = [...picked.values()];
@@ -259,19 +260,39 @@ if (typeof document !== "undefined") {
       c.element.title = why;
       c.why.textContent = c.type.compatible ? why : ""; // a type that does not build says so already
     }
-    document.getElementById("tray").hidden = chosen.length === 0;
-    if (chosen.length > 0) {
-      document.getElementById("stack").replaceChildren(...chosen.map(monogram));
-      const count = document.createElement("b");
-      count.textContent = chosen.length;
-      document.getElementById("count").replaceChildren(count, " picked");
-      document.getElementById("summary").textContent = `Oiko ${chosen[0].oiko} with ${chosen.map((t) => t.name).join(", ")}`;
-      document.getElementById("command").textContent = command(chosen);
-      document.getElementById("dockerfile").textContent = dockerfile(chosen);
-      document.getElementById("config").textContent = config(chosen);
-      document.getElementById("flake").textContent = flake(chosen);
-      document.getElementById("oiko-nix").textContent = oikoNix(chosen);
+
+    // The stock image runs in Docker alone: with none picked, its tab is the only one.
+    const stock = chosen.length === 0;
+    const shown = stock ? tabs.find((t) => t.getAttribute("aria-controls") === "docker") : tab;
+    for (const t of tabs) {
+      t.setAttribute("aria-selected", t === shown);
+      document.getElementById(t.getAttribute("aria-controls")).hidden = t !== shown;
     }
+    document.querySelector("[role=tablist]").hidden = stock;
+    document.getElementById("shared").hidden = stock || shown.hasAttribute("data-own-config");
+    for (const el of document.querySelectorAll("[data-build]")) {
+      el.hidden = stock;
+    }
+    for (const el of document.querySelectorAll("[data-stock]")) {
+      el.hidden = !stock;
+    }
+
+    document.getElementById("stack").replaceChildren(...chosen.map(monogram));
+    const count = document.createElement("b");
+    count.textContent = chosen.length;
+    document.getElementById("count").replaceChildren(...(stock ? ["No type picked"] : [count, " picked"]));
+    document.getElementById("build-label").textContent = stock ? "Run Oiko's image" : "Build your Oiko";
+    document.getElementById("compose").textContent = compose(stock ? index.oiko : undefined);
+    if (stock) {
+      document.getElementById("summary").textContent = `Oiko ${index.oiko} with its built-in types, zigbee2mqtt and homekit`;
+      return;
+    }
+    document.getElementById("summary").textContent = `Oiko ${chosen[0].oiko} with ${chosen.map((t) => t.name).join(", ")}`;
+    document.getElementById("command").textContent = command(chosen);
+    document.getElementById("dockerfile").textContent = dockerfile(chosen);
+    document.getElementById("config").textContent = config(chosen);
+    document.getElementById("flake").textContent = flake(chosen);
+    document.getElementById("oiko-nix").textContent = oikoNix(chosen);
   }
   render();
 }

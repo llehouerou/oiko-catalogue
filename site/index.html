@@ -143,7 +143,7 @@
     <h1>Bridges for <span>your Oiko</span></h1>
     <p>
       Types of Bridge for <a href="https://github.com/llehouerou/oiko">Oiko</a>, written by others.
-      Pick some to build an Oiko with them: a binary, a Docker image or a NixOS service.
+      Pick some to build an Oiko with them: a binary, a Docker image or a NixOS service; with none, run Oiko's own Docker image.
       Oiko has types built in too: see <a href="https://github.com/llehouerou/oiko/blob/main/docs/configure.md#bridges">Configure</a>.
       To list yours, see <a href="https://github.com/llehouerou/oiko-catalogue#listing-a-type-of-bridge">the catalogue's README</a>.
     </p>
@@ -154,10 +154,10 @@
   <p id="empty" hidden>No type of Bridge matches.</p>
 </main>
 
-<div id="tray" hidden>
+<div id="tray">
   <span id="stack"></span>
   <span id="count"></span>
-  <button type="button" class="primary" id="build">Build your Oiko <svg class="i"><use href="#i-arrow"/></svg></button>
+  <button type="button" class="primary" id="build"><span id="build-label">Build your Oiko</span> <svg class="i"><use href="#i-arrow"/></svg></button>
 </div>
 
 <dialog id="output" aria-labelledby="output-title"><div>
@@ -183,18 +183,26 @@
   </div>
 
   <div id="docker" role="tabpanel" hidden>
-    <div class="file"><h3>Dockerfile <button type="button" data-copy="dockerfile"><svg class="i"><use href="#i-copy"/></svg><span>Copy</span></button></h3><pre id="dockerfile"></pre></div>
+    <div class="file" data-build><h3>Dockerfile <button type="button" data-copy="dockerfile"><svg class="i"><use href="#i-copy"/></svg><span>Copy</span></button></h3><pre id="dockerfile"></pre></div>
     <div class="file"><h3>compose.yaml <button type="button" data-copy="compose"><svg class="i"><use href="#i-copy"/></svg><span>Copy</span></button></h3><pre id="compose"></pre></div>
+    <p data-stock>
+      Oiko's own image holds its built-in types of Bridge, zigbee2mqtt and homekit.
+      Pick a type to build an Oiko adding it instead: the same <code>./data</code> carries over.
+    </p>
     <ol>
-      <li><span>Put both files in a directory and run <code>mkdir data</code> there first: Docker would create a missing <code>data</code> owned by root.</span></li>
+      <li data-build><span>Put both files in a directory and run <code>mkdir data</code> there first: Docker would create a missing <code>data</code> owned by root.</span></li>
+      <li data-stock><span>Put <code>compose.yaml</code> in a directory and run <code>mkdir data</code> there first: Docker would create a missing <code>data</code> owned by root.</span></li>
       <li><span>In <code>compose.yaml</code>, set <code>user</code> to what <code>id -u</code> and <code>id -g</code> print.</span></li>
-      <li><span>Put <code>config.json</code> below in <code>data/</code>. File paths in it are paths in the container: <code>/data/…</code>.</span></li>
-      <li><span>Run <code>docker compose up -d --build</code>, and open <a href="http://localhost:8080">http://localhost:8080</a>.</span></li>
+      <li data-build><span>Put <code>config.json</code> below in <code>data/</code>. File paths in it are paths in the container: <code>/data/…</code>.</span></li>
+      <li data-stock><span>Write <code>data/config.json</code>: see <a href="https://github.com/llehouerou/oiko/blob/main/docs/configure.md">Configure</a>. File paths in it are paths in the container: <code>/data/…</code>.</span></li>
+      <li data-build><span>Run <code>docker compose up -d --build</code>, and open <a href="http://localhost:8080">http://localhost:8080</a>.</span></li>
+      <li data-stock><span>Run <code>docker compose up -d</code>, and open <a href="http://localhost:8080">http://localhost:8080</a>.</span></li>
     </ol>
     <p>
       The container uses the host's network: HomeKit discovers accessories over mDNS.
       To pair one, run <code>docker compose run --rm oiko homekit pair &lt;code&gt;</code>, then <code>docker compose restart</code>.
-      When Oiko tells of a newer release, replace the <code>go run</code> command of the Dockerfile with the one it shows, and run <code>docker compose up -d --build</code> again.
+      <span data-build>When Oiko tells of a newer release, replace the <code>go run</code> command of the Dockerfile with the one it shows, and run <code>docker compose up -d --build</code> again.</span>
+      <span data-stock>When Oiko tells of a newer release, set the tag it gives in <code>compose.yaml</code>'s <code>image</code>, and run <code>docker compose pull &amp;&amp; docker compose up -d</code>.</span>
     </p>
   </div>
 

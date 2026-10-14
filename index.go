@@ -12,9 +12,13 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-// Index is the catalogue, index.json: the types of Bridge indexed, and the
-// repositories with the topic that are not, with why.
+// Index is the catalogue, index.json: the latest release of Oiko, the types
+// of Bridge indexed, and the repositories with the topic that are not, with
+// why.
 type Index struct {
+	// Oiko is the latest release of Oiko when indexed, which the site's stock
+	// image runs and the modules were built against.
+	Oiko     string     `json:"oiko"`
 	Modules  []Module   `json:"modules"`
 	Rejected []Rejected `json:"rejected"`
 }
@@ -90,6 +94,9 @@ func ParseIndex(data []byte) (Index, error) {
 // Check checks the shape of ix: what it says may be turned into build
 // commands and links.
 func (ix Index) Check() error {
+	if !release(ix.Oiko) {
+		return fmt.Errorf("oiko %q is not a release", ix.Oiko)
+	}
 	seen := map[string]bool{}
 	for _, m := range ix.Modules {
 		if err := m.check(); err != nil {

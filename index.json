@@ -1,4 +1,5 @@
 {
+  "oiko": "v0.10.2",
   "modules": [
     {
       "module": "github.com/llehouerou/oiko-arlo",

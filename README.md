@@ -65,6 +65,7 @@ Every day, and on demand, the workflow:
 
 ```json
 {
+  "oiko": "v0.3.0",
   "modules": [
     {
       "module": "github.com/someone/oiko-hue",
@@ -91,6 +92,8 @@ Every day, and on demand, the workflow:
 }
 ```
 
+- `oiko`: the latest Oiko release when indexed, which the modules are built against and the
+  site's stock image runs.
 - `modules`: the modules indexed, by module path. `license` is the SPDX id GitHub detects on the
   repository, `types` are the latest release's, `oiko` the Oiko release it was built against,
   `compatible` whether it builds and runs, and `error`, when not, the end of the build's output.
@@ -118,8 +121,19 @@ The Docker tab gives instead a `Dockerfile` and a `compose.yaml`. The Dockerfile
 one to put in its place), and runs Oiko in `gcr.io/distroless/static-debian12:nonroot` with
 `OIKO_INSTALL=docker` and its data in the volume `/data`. compose.yaml runs it on the host's
 network (HomeKit discovers accessories over mDNS), as the occupant's user, with `./data` and the
-host's timezone mounted. [Another workflow](.github/workflows/docker.yml) builds the pair for no
-type against the latest Oiko and checks its dashboard answers, on every change to the site.
+host's timezone mounted.
+
+With no type picked, the site offers Oiko's stock image instead, `ghcr.io/llehouerou/oiko`,
+which holds the built-in types (ADR 0057 of Oiko): the same `compose.yaml` with `image:` tagged
+with the latest Oiko release without its `v` in place of `build: .`, and no Dockerfile. The
+indexer records that release as `index.json`'s `oiko`. The image runs as the Dockerfile's does,
+with `OIKO_INSTALL=image`, so a home moves between the two keeping `./data`; it upgrades by
+setting the tag the dashboard gives, then `docker compose pull && docker compose up -d`.
+
+[Another workflow](.github/workflows/docker.yml) checks both against the latest Oiko, on every
+change to the site and daily, so a release whose image is missing or broken is caught within a
+day: the Dockerfile for no type is built, and the image pulled; each must print that release on
+`-version`, and serve its dashboard.
 
 The NixOS tab gives what a flake-based NixOS configuration adds: in `flake.nix`, the `oiko`
 input pinned to the Oiko release the types build against and its module; and an `oiko.nix`
