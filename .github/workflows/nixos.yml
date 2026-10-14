@@ -30,7 +30,10 @@ jobs:
       - name: Resolve the latest Oiko release
         id: oiko
         run: |
-          version=$(curl -fsS https://proxy.golang.org/github.com/llehouerou/oiko/@latest | jq -r .Version)
+          # The highest release the proxy lists, as go list's @latest and the indexer resolve it:
+          # its own @latest may lag a release by hours.
+          version=$(curl -fsS https://proxy.golang.org/github.com/llehouerou/oiko/@v/list | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+          test -n "$version"
           echo "Oiko $version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Write the flake
